@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>CS QUIZ · Cyber Study Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000000;--surface:#0d0d0d;--surface-2:#141414;--hover:#1a1a1a;
+  --border:rgba(255,255,255,0.1);--border-hi:rgba(229,195,0,0.5);
+  --text-hi:#ffffff;--text-mid:#888888;--text-lo:#444444;
+  --sage-bg:rgba(229,195,0,0.08);--sage-br:#e5c300;--sage-tx:#e5c300;
+  --rose-bg:rgba(255,255,255,0.05);--rose-br:rgba(255,255,255,0.4);--rose-tx:#aaaaaa;
+  --accent:#e5c300;--accent-2:#f0d000;--gold:#e5c300;
+  --shadow:0 2px 24px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,0.05);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.9), 0 0 0 1px rgba(229,195,0,0.12);
+  --spring:cubic-bezier(.34,1.36,.64,1);
+  --smooth:cubic-bezier(.4,0,.2,1);
+  --ease:cubic-bezier(.25,.46,.45,.94);
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text-hi);font-family:'Space Grotesk',system-ui,sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased;min-height:100vh;position:relative}
+
+/* Ambient background — single cobalt yellow orb, very subtle */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(140px);will-change:transform}
+.orb-1{width:50vw;height:50vw;background:#e5c300;opacity:.06;top:-10%;left:-10%;animation:float 24s ease-in-out infinite alternate}
+.orb-2{width:40vw;height:40vw;background:#ffffff;opacity:.03;bottom:-15%;right:-10%;animation:float 30s ease-in-out -8s infinite alternate-reverse}
+.orb-3{display:none}
+@keyframes float{0%{transform:translate(0,0) scale(1)}100%{transform:translate(30px,40px) scale(1.08)}}
+
+/* Subtle dot grid */
+.noise{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:1;
+  background-image:radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px);
+  background-size:28px 28px}
+
+/* Confetti */
+#fx{position:fixed;inset:0;z-index:100;pointer-events:none}
+.confetti{position:absolute;width:5px;height:10px;opacity:0;animation:fall 2.5s ease-out forwards;border-radius:2px}
+@keyframes fall{
+  0%{opacity:1;transform:translate(0,-20vh) rotate(0)}
+  100%{opacity:0;transform:translate(var(--dx),110vh) rotate(600deg)}
+}
+
+/* Toast */
+.toast{
+  position:fixed;top:5rem;left:50%;transform:translateX(-50%) translateY(-16px);
+  background:var(--accent);color:#000;padding:.65rem 1.4rem;border-radius:6px;
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:700;z-index:200;opacity:0;
+  transition:opacity .3s var(--ease),transform .3s var(--spring);
+  box-shadow:0 4px 20px rgba(229,195,0,0.3);pointer-events:none;
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Global Nav */
+.global-nav{position:absolute;top:1.5rem;right:2rem;z-index:10;display:flex;align-items:center;gap:.65rem}
+.streak-badge,.level-badge{
+  background:var(--surface);border:1px solid var(--border);
+  padding:.45rem .9rem;border-radius:6px;display:flex;align-items:center;gap:.55rem;
+  box-shadow:var(--shadow);transition:transform .3s var(--spring),border-color .3s;
+}
+.streak-badge:hover,.level-badge:hover{transform:translateY(-2px);border-color:var(--border-hi)}
+.streak-badge{font-size:.78rem;font-weight:600;color:var(--gold)}
+.streak-badge.active{color:var(--gold);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.lvl-text{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:500;letter-spacing:.05em;color:var(--text-mid)}
+.lvl-text b{font-family:inherit;font-size:.9rem;color:var(--accent);display:inline-block;transition:transform .4s var(--spring)}
+.lvl-text b.bump{transform:scale(1.35)}
+.xp-bar-container{width:56px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.xp-fill{height:100%;width:0%;background:var(--accent);transition:width .9s var(--spring);position:relative;overflow:hidden;border-radius:2px}
+.xp-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shimmer 2.5s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* App shell */
+#app{position:relative;z-index:2;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:4rem 1.25rem 2rem}
+.screen{width:100%;max-width:960px;display:none;flex-direction:column;align-items:center;opacity:0;transform:translateY(18px) scale(.988);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.screen.mounted{display:flex}
+.screen.active{opacity:1;transform:translateY(0) scale(1)}
+.screen.exit{opacity:0;transform:translateY(-18px) scale(.988)}
+
+/* Typography */
+.display-serif{color:var(--text-hi);text-align:center;text-transform:uppercase;letter-spacing:4px}
+.display-xl{font-size:clamp(2.8rem,7vw,4.5rem);line-height:1.1;margin-bottom:.5rem;font-weight:700;color:var(--accent);letter-spacing:-.01em}
+.display-lg{font-size:clamp(1.8rem,4.5vw,2.8rem);line-height:1.15;margin-bottom:1rem;color:var(--text-hi);font-weight:600}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:var(--text-lo);margin-bottom:1rem}
+.subtitle{font-size:clamp(.88rem,1.5vw,.95rem);color:var(--text-mid);text-align:center;line-height:1.75;max-width:460px}
+
+/* Buttons */
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.85rem 2rem;border-radius:6px;border:none;font-family:'Space Grotesk',sans-serif;font-size:.88rem;font-weight:600;letter-spacing:.04em;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .3s var(--spring),background .25s var(--ease),box-shadow .25s var(--ease)}
+.btn-primary{background:var(--accent);color:#000;box-shadow:0 4px 16px rgba(229,195,0,0.2)}
+.btn-primary:hover{background:var(--accent-2);box-shadow:0 6px 24px rgba(229,195,0,0.3);transform:translateY(-2px)}
+.btn-primary:active{transform:scale(.97)}
+.btn-ghost{background:transparent;color:var(--text-hi);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--hover);border-color:rgba(255,255,255,0.3);transform:translateY(-2px)}
+.btn .ripple{position:absolute;border-radius:50%;background:rgba(0,0,0,.2);transform:scale(0);animation:ripple .55s ease-out;pointer-events:none}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+
+/* Welcome */
+#welcome{gap:0;padding:3rem 0;text-align:center}
+.welcome-cta{margin-top:2.5rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.hint{margin-top:1.5rem;font-size:.7rem;color:var(--text-lo);letter-spacing:.04em;font-family:'JetBrains Mono',monospace}
+.hint kbd{background:var(--surface-2);border:1px solid var(--border);padding:.15rem .4rem;border-radius:4px;font-family:inherit;font-size:.66rem;color:var(--accent)}
+
+/* Modules */
+#sets{gap:2.5rem;padding:2rem 0}
+.sets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;width:100%}
+.module-card{background:var(--surface);padding:1.75rem;border-radius:10px;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;text-align:left;transition:transform .4s var(--spring),box-shadow .4s var(--ease),border-color .3s;opacity:0;transform:translateY(18px);animation:slideIn .5s var(--spring) forwards;position:relative;overflow:hidden}
+@keyframes slideIn{to{opacity:1;transform:translateY(0)}}
+.module-card::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(229,195,0,0.07),transparent 55%);opacity:0;transition:opacity .5s;pointer-events:none}
+.module-card:hover::before{opacity:1}
+.module-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg);border-color:var(--border-hi)}
+.module-icon{width:44px;height:44px;border-radius:8px;background:rgba(229,195,0,0.06);border:1px solid rgba(229,195,0,0.15);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:1.25rem;transition:all .4s var(--spring)}
+.module-card:hover .module-icon{transform:scale(1.08);border-color:var(--accent);background:rgba(229,195,0,0.12)}
+.module-title{font-size:1rem;font-weight:600;margin-bottom:.4rem;color:var(--text-hi)}
+.module-desc{font-size:.82rem;color:var(--text-mid);line-height:1.65;margin-bottom:1.25rem}
+.module-meta{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-lo);font-weight:500;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center}
+.best-score{background:rgba(229,195,0,0.08);color:var(--accent);border:1px solid rgba(229,195,0,0.2);padding:.18rem .55rem;border-radius:4px;font-size:.66rem}
+
+/* Quiz */
+#quiz{gap:1.25rem;padding:0 0 2rem;max-width:660px}
+.quiz-top{width:100%;display:flex;align-items:center;justify-content:space-between}
+.back-btn{background:none;border:none;color:var(--text-mid);font-size:.82rem;font-weight:500;font-family:'Space Grotesk',sans-serif;cursor:pointer;display:flex;align-items:center;gap:.45rem;transition:color .25s,transform .25s var(--ease)}
+.back-btn:hover{color:var(--text-hi);transform:translateX(-3px)}
+.progress-meta{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-lo);font-weight:500;letter-spacing:.1em}
+.progress-track{height:2px;background:rgba(255,255,255,0.07);border-radius:2px;width:100%;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:var(--accent);transition:width .65s var(--spring);border-radius:2px}
+.dots{display:flex;gap:5px;margin-top:.6rem;justify-content:center}
+.dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.1);transition:all .35s var(--spring)}
+.dot.current{background:var(--accent);transform:scale(1.5)}
+.dot.correct{background:var(--accent)}
+.dot.wrong{background:rgba(255,255,255,0.3)}
+
+.card-scene{width:100%;perspective:1800px;margin:1.25rem 0}
+.card-3d{position:relative;width:100%;min-height:400px;transform-style:preserve-3d;transition:transform .75s var(--ease)}
+.card-3d.flipped{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;padding:2.75rem 2.25rem;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:border-color .4s var(--ease),box-shadow .4s var(--ease)}
+.card-back{transform:rotateY(180deg)}
+.card-front.state-correct{border-color:rgba(229,195,0,0.6);box-shadow:0 0 0 1px rgba(229,195,0,0.15),0 8px 32px rgba(0,0,0,.6)}
+.card-front.state-wrong{border-color:rgba(255,255,255,0.2);box-shadow:0 0 0 1px rgba(255,255,255,0.08),0 8px 32px rgba(0,0,0,.6)}
+.card-front.shake{animation:shake .38s var(--ease)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}60%{transform:translateX(7px)}80%{transform:translateX(-3px)}}
+
+.card-question{font-size:clamp(1.1rem,2.8vw,1.35rem);line-height:1.6;margin-bottom:1.75rem;animation:fadeUp .45s var(--ease);color:var(--text-hi);font-weight:500}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.choices-grid{display:grid;grid-template-columns:1fr;gap:.6rem;width:100%}
+.choice-btn{padding:.9rem 1.1rem;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);color:var(--text-hi);font-family:'Space Grotesk',sans-serif;font-size:.88rem;font-weight:500;text-align:left;cursor:pointer;display:flex;align-items:center;gap:.7rem;transition:background .2s var(--ease),border-color .2s,transform .3s var(--spring);opacity:0;transform:translateX(-8px);animation:slideRight .4s var(--ease) forwards;position:relative;overflow:hidden}
+@keyframes slideRight{to{opacity:1;transform:translateX(0)}}
+.choice-btn:hover:not(:disabled){background:rgba(229,195,0,0.06);transform:translateX(3px);border-color:rgba(229,195,0,0.3)}
+.choice-btn:disabled{cursor:default}
+.choice-letter{flex-shrink:0;width:26px;height:26px;border-radius:5px;background:rgba(255,255,255,0.04);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.66rem;font-weight:700;color:var(--text-mid);transition:all .3s var(--spring)}
+.choice-btn:hover:not(:disabled) .choice-letter{background:var(--accent);color:#000;border-color:var(--accent)}
+.choice-btn.correct{background:rgba(229,195,0,0.08);border-color:rgba(229,195,0,0.5);color:var(--accent);animation:bounceIn .45s var(--spring)}
+.choice-btn.correct .choice-letter{background:var(--accent);color:#000;border-color:var(--accent)}
+.choice-btn.wrong{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.15);color:var(--text-mid)}
+.choice-btn.wrong .choice-letter{background:rgba(255,255,255,0.1);color:var(--text-mid);border-color:rgba(255,255,255,0.2)}
+.choice-btn.faded{opacity:.15;border-color:transparent;background:transparent}
+@keyframes bounceIn{0%{transform:scale(.97)}55%{transform:scale(1.015)}100%{transform:scale(1)}}
+
+.back-label{font-family:'JetBrains Mono',monospace;font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:1rem;padding:.28rem .7rem;border-radius:4px}
+.card-back.correct-face .back-label{color:#000;background:var(--accent);border:1px solid var(--accent)}
+.card-back.wrong-face .back-label{color:var(--text-mid);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15)}
+.back-answer{font-size:1.2rem;margin-bottom:1rem;line-height:1.45;color:var(--text-hi);font-weight:600}
+.back-explanation{font-size:.875rem;color:var(--text-mid);line-height:1.65;max-width:88%}
+
+.quiz-controls{display:flex;justify-content:center;width:100%;gap:.75rem}
+.quiz-controls.hidden{opacity:0;pointer-events:none;transform:translateY(8px)}
+.quiz-controls{transition:opacity .35s var(--ease),transform .35s var(--spring)}
+
+/* Results */
+#results{gap:1.5rem;padding:2rem 0;text-align:center;align-items:center}
+.results-card{background:var(--surface);border:1px solid var(--border);padding:2.75rem 2rem;border-radius:14px;box-shadow:var(--shadow-lg);width:100%;max-width:460px;animation:scaleIn .55s var(--spring)}
+@keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.xp-gain-badge{display:inline-block;padding:.45rem 1.1rem;border-radius:5px;background:rgba(229,195,0,0.1);border:1px solid rgba(229,195,0,0.25);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;margin-bottom:1.5rem;animation:bounceIn .7s var(--spring) .2s both;letter-spacing:.06em}
+.stat-row{display:flex;justify-content:space-around;margin:2rem 0;padding-top:2rem;border-top:1px solid rgba(255,255,255,0.06)}
+.stat-box{display:flex;flex-direction:column;gap:.3rem}
+.stat-box b{font-size:1.7rem;color:var(--accent);display:inline-block;animation:countUp .7s var(--spring) .4s both;font-weight:700}
+@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.stat-box span{font-family:'JetBrains Mono',monospace;font-size:.63rem;color:var(--text-lo);text-transform:uppercase;letter-spacing:.12em}
+#levelUpBanner{display:none;background:rgba(229,195,0,0.06);border:1px solid rgba(229,195,0,0.2);padding:1.4rem;border-radius:10px;margin-top:1.5rem;animation:popIn .55s var(--spring)}
+@keyframes popIn{0%{transform:scale(.92);opacity:0}100%{transform:scale(1);opacity:1}}
+#levelUpBanner h3{color:var(--accent);margin-bottom:.3rem;font-size:1rem}
+#levelUpBanner p{font-size:.82rem;color:var(--text-mid)}
+.results-cta{display:flex;gap:1rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap}
+
+@media(max-width:540px){
+  .global-nav{top:1rem;right:1rem;gap:.5rem}
+  .streak-badge{padding:.35rem .65rem;font-size:.72rem}
+  #app{padding-top:5rem}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-layer">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+<div class="noise"></div>
+<div id="fx"></div>
+<div class="toast" id="toast"></div>
+
+<nav class="global-nav">
+  <div class="level-badge">
+    <div class="lvl-text">Lvl <b id="globalLvl">1</b></div>
+    <div class="xp-bar-container"><div class="xp-fill" id="globalXpFill"></div></div>
+  </div>
+</nav>
+
+<main id="app">
+  <section id="welcome" class="screen mounted active">
+    <div class="eyebrow">SYSTEM OVERLAY // ONLINE</div>
+    <h1 class="display-serif display-xl">CS QUIZ</h1>
+    <p class="subtitle">Sharpen your CS fundamentals, one question at a time." — clean and fitting.</p>
+    <div class="welcome-cta">
+      <button class="btn btn-primary" onclick="navTo('sets')">Initialize Mainframe →</button>
+    </div>
+    <div class="hint">Bind Inputs: Key <kbd>1</kbd>–<kbd>4</kbd> to Answer · <kbd>Enter</kbd> to Continue</div>
+  </section>
+
+  <section id="sets" class="screen">
+    <div class="eyebrow">DIRECTORY SELECT</div>
+    <h2 class="display-serif display-lg">Select a Module</h2>
+    <div class="sets-grid" id="setsGrid"></div>
+  </section>
+
+  <section id="quiz" class="screen">
+    <div class="quiz-top">
+      <button class="back-btn" onclick="navTo('sets')">← DISCONNECT MODULE</button>
+      <div class="progress-meta"><span id="uiProgressText">1 / 10</span></div>
+    </div>
+    
+    <div style="width: 100%; margin-top: 0.5rem;">
+      <div class="progress-track"><div class="progress-fill" id="uiProgressFill"></div></div>
+      <div class="dots" id="uiDots"></div>
+    </div>
+
+    <div class="card-scene">
+      <div class="card-3d" id="quizCard">
+        <div class="card-face card-front" id="cardFront">
+          <div class="card-question" id="uiQuestion">Querying system arrays...</div>
+          <div class="choices-grid" id="uiChoices"></div>
+        </div>
+
+        <div class="card-face card-back" id="cardBack">
+          <div class="back-label" id="uiBackLabel">Verification</div>
+          <div class="back-answer" id="uiBackAnswer">Correct Answer</div>
+          <div class="back-explanation" id="uiBackExplanation">Explanation context goes here.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-controls hidden" id="uiControls">
+      <button class="btn btn-primary" id="nextBtn" onclick="handleControlAction()">Continue <kbd>Enter</kbd></button>
+    </div>
+  </section>
+
+  <section id="results" class="screen">
+    <div class="results-card">
+      <div class="eyebrow">EVALUATION CONCLUDED</div>
+      <h2 class="display-serif display-lg" id="resultsTitle">Aesthetic Mastery</h2>
+      <div class="xp-gain-badge" id="resultsXpGain">+0 XP Accumulated</div>
+      
+      <div class="stat-row">
+        <div class="stat-box">
+          <b id="statScore">0%</b>
+          <span>INTEGRITY</span>
+        </div>
+        <div class="stat-box">
+          <b id="statTime">0s</b>
+          <span>RUNTIME</span>
+        </div>
+        <div class="stat-box">
+          <b id="statAccuracy">0%</b>
+          <span>ACCURACY</span>
+        </div>
+      </div>
+
+      <div id="levelUpBanner">
+        <h3>✨ RUNTIME LEVEL ADVANCED</h3>
+        <p>Your synaptic nodes have synthesized data vectors to Level <span id="bannerLvl">2</span></p>
+      </div>
+
+      <div class="results-cta">
+        <button class="btn btn-primary" onclick="retryQuiz()">Re-verify Sequence</button>
+        <button class="btn btn-ghost" onclick="navTo('sets')">Return to Directory</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/**
+ * Lecturely Core Engine Data Structures
+ */
+const MODULES_DATA = [
+  {
+      id: "dsa",
+    title: "Data Structures & Algorithms",
+    icon: "📊",
+    desc: "Master computational complexities, topological invariants, traversal patterns, and analytical paradigms.",
+    questions: [
+      {
+        q: "Which data structure follows the LIFO (Last In, First Out) principle?",
+        c: ["Queue", "Stack", "Linked List", "Tree"],
+        a: 1,
+        e: "A Stack restricts data injection and eviction to the exact same end point, causing newer components to process first."
+      },
+      {
+        q: "What is the worst-case time complexity of linear search?",
+        c: ["O(1)", "O(log n)", "O(n)", "O(n²)"],
+        a: 2,
+        e: "In the absolute worst condition, a linear search vector must scan every individual cell up to the 'n'th boundary."
+      },
+      {
+        q: "Which data structure uses FIFO (First In, First Out)?",
+        c: ["Stack", "Queue", "Array", "Graph"],
+        a: 1,
+        e: "A Queue works exactly like a regular line where data entering first is processed and released first."
+      },
+      {
+        q: "Which of the following is a non-linear data structure?",
+        c: ["Array", "Linked List", "Queue", "Tree"],
+        a: 3,
+        e: "Arrays, Linked Lists, and Queues form straight paths, whereas a Tree layout scales outward across non-linear branches."
+      },
+      {
+        q: "Which algorithm is generally used to search efficiently in a sorted array?",
+        c: ["Linear Search", "Binary Search", "Bubble Sort", "Selection Sort"],
+        a: 1,
+        e: "Binary search cuts sorted search space fields directly in half with every loop to maximize query efficiency."
+      }
+    ]
+  },
+  {
+    id: "arch",
+    title: "Computer Architecture & Engineering",
+    icon: "💻",
+    desc: "Examine execution pipelines, cache coherency models, physical register mapping, and memory hierarchies.",
+    questions: [
+      {
+        q: "Which component is known as the brain of the computer?",
+        c: ["RAM", "Hard Disk", "CPU", "GPU"],
+        a: 2,
+        e: "The CPU (Central Processing Unit) acts as the operational nerve center executing code logic parameters."
+      },
+      {
+        q: "Which memory is volatile?",
+        c: ["ROM", "SSD", "RAM", "DVD"],
+        a: 2,
+        e: "RAM requires consistent electrical line feeds to preserve active data matrices, wiping instantly on a power failure."
+      },
+      {
+        q: "What does ALU stand for?",
+        c: ["Arithmetic Logic Unit", "Advanced Logic Unit", "Arithmetic Language Unit", "Automatic Logic Unit"],
+        a: 0,
+        e: "The ALU handles all raw math processes and logical binary comparisons inside the hardware pipeline."
+      },
+      {
+        q: "Which number system is used internally by computers?",
+        c: ["Decimal", "Binary", "Octal", "Hexadecimal"],
+        a: 1,
+        e: "Computer architecture relies cleanly on low and high voltage state variables, translated to base-2 Binary (0 and 1)."
+      },
+      {
+        q: "Which memory is the fastest?",
+        c: ["Hard Disk", "SSD", "RAM", "Cache Memory"],
+        a: 3,
+        e: "Cache memory slots closest to the processor pipelines, outperforming RAM latency windows significantly."
+      }
+    ]
+  },
+  {
+    id: "systems",
+    title: "Systems & Network Architecture",
+    icon: "🌐",
+    desc: "Demystify transport protocols, asynchronous scheduling loops, synchronization primitives, and virtual kernels.",
+    questions: [
+      {
+        q: "What does LAN stand for?",
+        c: ["Local Access Network", "Local Area Network", "Long Area Network", "Logical Area Network"],
+        a: 1,
+        e: "LAN refers to a localized area network cluster handling close physical proximity infrastructure links."
+      },
+      {
+        q: "Which device forwards data packets between different networks?",
+        c: ["Switch", "Hub", "Router", "Repeater"],
+        a: 2,
+        e: "A Router evaluates destination data paths to cleanly dispatch packets outward between individual network links."
+      },
+      {
+        q: "What does IP stand for?",
+        c: ["Internet Process", "Internet Protocol", "Internal Protocol", "Internet Program"],
+        a: 1,
+        e: "IP stands for Internet Protocol, the core routing layer responsible for routing data across endpoints."
+      },
+      {
+        q: "Which protocol is used to securely browse websites?",
+        c: ["HTTP", "FTP", "HTTPS", "SMTP"],
+        a: 2,
+        e: "HTTPS embeds standard data operations within an encrypted TLS layer to stop network interceptors."
+      },
+      {
+        q: "Which device converts digital signals to analog and vice versa for Internet communication?",
+        c: ["Switch", "Router", "Modem", "Bridge"],
+        a: 2,
+        e: "A Modem modulates and demodulates complex signal properties to translate continuous analog fields to digital bytes."
+      }
+    ]
+  },
+  {
+    id: "cybersec",
+    title: "Cybersecurity Fundamentals",
+    icon: "🔐",
+    desc: "Explore encryption, attack vectors, authentication protocols, and defensive security principles.",
+    questions: [
+      {
+        q: "What type of attack involves overwhelming a server with traffic to make it unavailable?",
+        c: ["Phishing", "Man-in-the-Middle", "DDoS", "SQL Injection"],
+        a: 2,
+        e: "A Distributed Denial of Service (DDoS) attack floods a target server with massive traffic from multiple sources, making it unable to respond to legitimate requests."
+      },
+      {
+        q: "Which encryption standard is widely used to secure modern wireless networks?",
+        c: ["WEP", "WPA", "WPA2", "WPA3"],
+        a: 3,
+        e: "WPA3 is the latest and most secure Wi-Fi encryption standard, offering stronger protection against brute-force attacks compared to its predecessors."
+      },
+      {
+        q: "What is a firewall primarily used for?",
+        c: ["Speeding up internet connection", "Storing passwords securely", "Filtering incoming and outgoing network traffic", "Encrypting hard drive data"],
+        a: 2,
+        e: "A firewall monitors and controls network traffic based on predefined security rules, acting as a barrier between trusted and untrusted networks."
+      },
+      {
+        q: "What does 'phishing' refer to in cybersecurity?",
+        c: ["Scanning for open ports", "Tricking users into revealing sensitive information", "Injecting malicious code into a database", "Intercepting network packets"],
+        a: 1,
+        e: "Phishing is a social engineering attack where an attacker disguises themselves as a trustworthy entity to steal credentials or personal data."
+      },
+      {
+        q: "Which of the following best describes two-factor authentication (2FA)?",
+        c: ["Using two different passwords", "Logging in from two devices", "Verifying identity using two separate methods", "Encrypting data twice"],
+        a: 2,
+        e: "2FA requires two distinct forms of verification — such as a password plus a one-time code — making unauthorized access significantly harder."
+      }
+    ]
+  }
+];
+
+/**
+ * State Management Object
+ */
+let AppState = {
+  activeScreen: "welcome",
+  streak: 0,
+  level: 1,
+  xp: 0,
+  currentModule: null,
+  currentQuestionIdx: 0,
+  score: 0,
+  isFlipped: false,
+  selectedChoiceIdx: null,
+  quizStartTime: null,
+  bestScores: {}
+};
+
+/**
+ * Platform Initialization Matrix
+ */
+document.addEventListener("DOMContentLoaded", () => {
+  loadLocalContext();
+  initializeGlobalUX();
+  buildModuleCurriculum();
+  setupKeyboardRouters();
+  renderProfileBadges();
+});
+
+/**
+ * High-Performance LocalStorage Synchronizer
+ */
+function loadLocalContext() {
+  try {
+    AppState.xp = parseInt(localStorage.getItem("lecturely_xp")) || 0;
+    AppState.level = parseInt(localStorage.getItem("lecturely_lvl")) || 1;
+    AppState.streak = parseInt(localStorage.getItem("lecturely_streak")) || 0;
+    
+    const savedScores = localStorage.getItem("lecturely_scores");
+    if (savedScores) AppState.bestScores = JSON.parse(savedScores);
+    
+    const lastDateStr = localStorage.getItem("lecturely_last_date");
+    const todayStr = new Date().toDateString();
+    
+    if (lastDateStr) {
+      const lastDate = new Date(lastDateStr);
+      const today = new Date(todayStr);
+      const diffTime = Math.abs(today - lastDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) {
+        // Active subsequent engagement verified
+      } else if (diffDays > 1) {
+        AppState.streak = 0; // Streak broken due to inactivity
+        localStorage.setItem("lecturely_streak", "0");
+      }
+    }
+  } catch (e) {
+    console.error("Local context synchronization exception:", e);
+  }
+}
+
+function saveLocalContext() {
+  try {
+    localStorage.setItem("lecturely_xp", AppState.xp.toString());
+    localStorage.setItem("lecturely_lvl", AppState.level.toString());
+    localStorage.setItem("lecturely_streak", AppState.streak.toString());
+    localStorage.setItem("lecturely_scores", JSON.stringify(AppState.bestScores));
+  } catch (e) {
+    console.error("Context persistence execution failure:", e);
+  }
+}
+
+/**
+ * Interface Infrastructure & Interactive Core Controls
+ */
+function initializeGlobalUX() {
+  document.querySelectorAll(".btn").forEach(button => {
+    button.addEventListener("click", function(e) {
+      createInteractionRipple(e, this);
+    });
+  });
+}
+
+function createInteractionRipple(event, element) {
+  const ripple = document.createElement("span");
+  ripple.classList.add("ripple");
+  
+  const diameter = Math.max(element.clientWidth, element.clientHeight);
+  const radius = diameter / 2;
+  
+  const rect = element.getBoundingClientRect();
+  ripple.style.width = ripple.style.height = `${diameter}px`;
+  ripple.style.left = `${event.clientX - rect.left - radius}px`;
+  ripple.style.top = `${event.clientY - rect.top - radius}px`;
+  
+  const dynamicRipple = element.getElementsByClassName("ripple")[0];
+  if (dynamicRipple) dynamicRipple.remove();
+  
+  element.appendChild(ripple);
+}
+
+/**
+ * High-Performance Dynamic Screen Navigation System
+ */
+function navTo(targetScreenId) {
+  const activeDom = document.getElementById(AppState.activeScreen);
+  const targetDom = document.getElementById(targetScreenId);
+  
+  if (!targetDom || targetScreenId === AppState.activeScreen) return;
+  
+  activeDom.classList.remove("active");
+  activeDom.classList.add("exit");
+  
+  setTimeout(() => {
+    activeDom.classList.remove("mounted", "exit");
+    targetDom.classList.add("mounted");
+    
+    // Trigger layout pass before applying activation classes
+    void targetDom.offsetWidth;
+    
+    targetDom.classList.add("active");
+    AppState.activeScreen = targetScreenId;
+    
+    if (targetScreenId === "sets") buildModuleCurriculum();
+  }, 450);
+}
+
+/**
+ * Curriculum Dataset Component Builder
+ */
+function buildModuleCurriculum() {
+  const grid = document.getElementById("setsGrid");
+  if (!grid) return;
+  
+  grid.innerHTML = "";
+  
+  MODULES_DATA.forEach((module, index) => {
+    const card = document.createElement("div");
+    card.classList.add("module-card");
+    card.style.animationDelay = `${index * 0.08}s`;
+    
+    const bestScore = AppState.bestScores[module.id] !== undefined ? `${AppState.bestScores[module.id]}%` : null;
+    const trackingBadge = bestScore ? `<span class="best-score">Mastery: ${bestScore}</span>` : `<span class="best-score" style="background:rgba(255,255,255,0.05);color:var(--text-mid);border:1px solid rgba(255,255,255,0.1)">Uninitiated</span>`;
+    
+    card.innerHTML = `
+      <div class="module-icon">${module.icon}</div>
+      <h3 class="module-title">${module.title}</h3>
+      <p class="module-desc">${module.desc}</p>
+      <div class="module-meta">
+        <span>${module.questions.length} Concepts</span>
+        ${trackingBadge}
+      </div>
+    `;
+    
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty("--mx", `${x}px`);
+      card.style.setProperty("--my", `${y}px`);
+    });
+    
+    card.addEventListener("click", () => startQuizSession(module));
+    grid.appendChild(card);
+  });
+}
+
+/**
+ * Quiz State Engine Orchestrator
+ */
+function startQuizSession(module) {
+  AppState.currentModule = module;
+  AppState.currentQuestionIdx = 0;
+  AppState.score = 0;
+  AppState.quizStartTime = Date.now();
+  
+  resetCardStructuralState();
+  navTo("quiz");
+  renderQuizChallenge();
+}
+
+function renderQuizChallenge() {
+  if (!AppState.currentModule) return;
+  
+  AppState.isFlipped = false;
+  AppState.selectedChoiceIdx = null;
+  
+  const currentQuestion = AppState.currentModule.questions[AppState.currentQuestionIdx];
+  const totalQuestions = AppState.currentModule.questions.length;
+  
+  document.getElementById("uiProgressText").innerText = `${AppState.currentQuestionIdx + 1} / ${totalQuestions}`;
+  const progressPercent = ((AppState.currentQuestionIdx + 1) / totalQuestions) * 100;
+  document.getElementById("uiProgressFill").style.width = `${progressPercent}%`;
+  
+  buildProgressDots(totalQuestions);
+  
+  document.getElementById("uiQuestion").innerText = currentQuestion.q;
+  
+  const choicesGrid = document.getElementById("uiChoices");
+  choicesGrid.innerHTML = "";
+  
+  currentQuestion.c.forEach((choice, index) => {
+    const btn = document.createElement("button");
+    btn.classList.add("choice-btn");
+    btn.style.animationDelay = `${index * 0.05}s`;
+    btn.innerHTML = `
+      <span class="choice-letter">${index + 1}</span>
+      <span class="choice-text"></span>
+    `;
+    btn.querySelector(".choice-text").innerText = choice;
+    btn.addEventListener("click", () => evaluateChoiceSelection(index));
+    choicesGrid.appendChild(btn);
+  });
+  
+  document.getElementById("uiControls").classList.add("hidden");
+}
+
+function buildProgressDots(count) {
+  const tracker = document.getElementById("uiDots");
+  tracker.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const dot = document.createElement("div");
+    dot.classList.add("dot");
+    if (i === AppState.currentQuestionIdx) dot.classList.add("current");
+    tracker.appendChild(dot);
+  }
+}
+
+/**
+ * Algorithmic Choice Evaluation Controller
+ */
+function evaluateChoiceSelection(choiceIndex) {
+  if (AppState.selectedChoiceIdx !== null) return;
+  
+  AppState.selectedChoiceIdx = choiceIndex;
+  const question = AppState.currentModule.questions[AppState.currentQuestionIdx];
+  const isCorrect = choiceIndex === question.a;
+  
+  const buttons = document.querySelectorAll(".choice-btn");
+  buttons.forEach((btn, idx) => {
+    btn.disabled = true; // Stop any more clicks
+    btn.style.animation = "none"; // Cancel slide-in so opacity/color classes take effect
+    btn.style.opacity = "1";
+    btn.style.transform = "translateX(0)";
+    
+    // First, explicitly check if this is the correct answer option
+    if (idx === question.a) {
+      btn.classList.add("correct");
+      btn.classList.remove("faded"); // Force removal of any fade styling
+    } 
+    // Next, check if this is the wrong answer option the user clicked
+    else if (idx === choiceIndex) {
+      btn.classList.add("wrong");
+    } 
+    // Otherwise, fade out all the other unselected wrong choices
+    else {
+      btn.classList.add("faded");
+    }
+  });
+  
+  const cardFront = document.getElementById("cardFront");
+  
+  // Rule 1: If correct, highlight green and transition to next question automatically
+  if (isCorrect) {
+    AppState.score++;
+    cardFront.classList.add("state-correct");
+    triggerLocalizedToast("DECRYPTION SUCCESSFUL");
+    
+    setTimeout(() => {
+      if (AppState.currentQuestionIdx < AppState.currentModule.questions.length - 1) {
+        AppState.currentQuestionIdx++;
+        resetCardStructuralState();
+        renderQuizChallenge();
+      } else {
+        resetCardStructuralState();
+        renderSessionSummary();
+      }
+    }, 2000);
+    return; // Exit early to prevent the card from preparing a flip sequence
+  }
+  
+  // Rule 2: If wrong, shake and require a manual card flip sequence
+  cardFront.classList.add("state-wrong");
+  cardFront.classList.add("shake");
+  triggerLocalizedToast("INTEGRITY COMPROMISED");
+  setTimeout(() => cardFront.classList.remove("shake"), 400);
+  
+  const backLabel = document.getElementById("uiBackLabel");
+  backLabel.innerText = "ARRAY MISMATCH";
+  
+  const cardBack = document.getElementById("cardBack");
+  cardBack.className = "card-face card-back wrong-face";
+  
+  document.getElementById("uiBackAnswer").innerText = `SYSTEM TRUTH: ${question.c[question.a]}`;
+  document.getElementById("uiBackExplanation").innerText = question.e;
+  
+  const controlBox = document.getElementById("uiControls");
+  const nextBtn = document.getElementById("nextBtn");
+  const isFinal = AppState.currentQuestionIdx === AppState.currentModule.questions.length - 1;
+  
+  nextBtn.innerHTML = isFinal ? `COMPILE ASSESSMENT <kbd>Enter</kbd>` : `CYCLE QUEUE <kbd>Enter</kbd>`;
+  controlBox.classList.remove("hidden");
+}
+
+function handleControlAction() {
+  const card = document.getElementById("quizCard");
+  
+  if (!AppState.isFlipped) {
+    card.classList.add("flipped");
+    AppState.isFlipped = true;
+  } else {
+    card.classList.remove("flipped");
+    setTimeout(() => {
+      if (AppState.currentQuestionIdx < AppState.currentModule.questions.length - 1) {
+        AppState.currentQuestionIdx++;
+        resetCardStructuralState();
+        renderQuizChallenge();
+      } else {
+        resetCardStructuralState();
+        renderSessionSummary();
+      }
+    }, 250);
+  }
+}
+
+function resetCardStructuralState() {
+  const card = document.getElementById("quizCard");
+  const front = document.getElementById("cardFront");
+  card.classList.remove("flipped");
+  front.classList.remove("state-correct", "state-wrong", "shake");
+}
+
+/**
+ * Summary Assessment & Gamification Core Engine
+ */
+function renderSessionSummary() {
+  const module = AppState.currentModule;
+  const total = module.questions.length;
+  const finalPercentage = Math.round((AppState.score / total) * 100);
+  
+  if (!AppState.bestScores[module.id] || finalPercentage > AppState.bestScores[module.id]) {
+    AppState.bestScores[module.id] = finalPercentage;
+  }
+  
+  const baseXP = AppState.score * 20;
+  const perfectionBonus = finalPercentage === 100 ? 50 : 0;
+  const accumulatedXP = baseXP + perfectionBonus;
+  
+  AppState.xp += accumulatedXP;
+  processStreakValidation();
+  
+  let levelUpOccurred = false;
+  let computedThreshold = AppState.level * 150;
+  
+  while (AppState.xp >= computedThreshold) {
+    AppState.xp -= computedThreshold;
+    AppState.level++;
+    computedThreshold = AppState.level * 150;
+    levelUpOccurred = true;
+  }
+  
+  saveLocalContext();
+  
+  document.getElementById("resultsTitle").innerText = finalPercentage >= 80 ? "SYNAPSE COHERENT" : "SYS_RESET REQUIRED";
+  document.getElementById("resultsXpGain").innerText = `+${accumulatedXP} NODE XP INJECTED`;
+  document.getElementById("statScore").innerText = `${finalPercentage}%`;
+  
+  const elapsedSeconds = Math.round((Date.now() - AppState.quizStartTime) / 1000);
+  document.getElementById("statTime").innerText = `${elapsedSeconds}s`;
+  document.getElementById("statAccuracy").innerText = `${finalPercentage}%`;
+  
+  const banner = document.getElementById("levelUpBanner");
+  if (levelUpOccurred) {
+    document.getElementById("bannerLvl").innerText = AppState.level;
+    banner.style.display = "block";
+    triggerAestheticConfettiBurst();
+  } else {
+    banner.style.display = "none";
+  }
+  
+  renderProfileBadges();
+  navTo("results");
+  if (finalPercentage >= 80 && !levelUpOccurred) triggerAestheticConfettiBurst();
+}
+
+function processStreakValidation() {
+  const todayStr = new Date().toDateString();
+  const lastActiveDate = localStorage.getItem("lecturely_last_date");
+  
+  if (lastActiveDate !== todayStr) {
+    AppState.streak++;
+    localStorage.setItem("lecturely_last_date", todayStr);
+    localStorage.setItem("lecturely_streak", AppState.streak.toString());
+    
+    const badge = document.getElementById("streakBadge");
+    badge.classList.add("active");
+    setTimeout(() => badge.classList.remove("active"), 2000);
+  }
+}
+
+function retryQuiz() {
+  if (AppState.currentModule) startQuizSession(AppState.currentModule);
+}
+
+/**
+ * Profile Metric Renderer Updates
+ */
+function renderProfileBadges() {
+  const lvlElement = document.getElementById("globalLvl");
+  const priorVal = parseInt(lvlElement.innerText);
+  lvlElement.innerText = AppState.level;
+  
+  if (priorVal && priorVal < AppState.level) {
+    lvlElement.classList.add("bump");
+    setTimeout(() => lvlElement.classList.remove("bump"), 600);
+  }
+  
+  const currentThreshold = AppState.level * 150;
+  const filledPercentage = (AppState.xp / currentThreshold) * 100;
+  document.getElementById("globalXpFill").style.width = `${filledPercentage}%`;
+}
+
+/**
+ * Access Support: Keyboard Routers Matrix
+ */
+function setupKeyboardRouters() {
+  window.addEventListener("keydown", (e) => {
+    const key = e.key;
+    
+    if (AppState.activeScreen === "quiz") {
+      if (key >= "1" && key <= "4") {
+        const index = parseInt(key) - 1;
+        const buttons = document.querySelectorAll(".choice-btn");
+        if (buttons[index] && !buttons[index].disabled) {
+          evaluateChoiceSelection(index);
+        }
+      }
+      
+      if (key === "Enter") {
+        const controls = document.getElementById("uiControls");
+        if (!controls.classList.contains("hidden")) {
+          handleControlAction();
+        }
+      }
+    } else if (AppState.activeScreen === "welcome" && key === "Enter") {
+      navTo("sets");
+    }
+  });
+}
+
+/**
+ * Feedback Components: Toast Infrastructure
+ */
+function triggerLocalizedToast(message) {
+  const toast = document.getElementById("toast");
+  toast.innerText = message;
+  toast.classList.add("show");
+  
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2500);
+}
+
+/**
+ * Cyberpunk Digital Particle Scatter
+ */
+function triggerAestheticConfettiBurst() {
+  const container = document.getElementById("fx");
+  if (!container) return;
+  
+  const configurationHues = ["#00f2fe", "#ff007f", "#ffe600", "#00ff41", "#7928ca"];
+  
+  for (let i = 0; i < 64; i++) {
+    const element = document.createElement("div");
+    element.classList.add("confetti");
+    
+    element.style.left = `${Math.random() * 100}vw`;
+    element.style.background = configurationHues[Math.floor(Math.random() * configurationHues.length)];
+    element.style.setProperty("--dx", `${(Math.random() - 0.5) * 40}vw`);
+    element.style.boxShadow = `0 0 8px ${element.style.background}`;
+    
+    element.style.animationDelay = `${Math.random() * 0.6}s`;
+    element.style.transform = `scale(${Math.random() * 0.6 + 0.5})`;
+    
+    container.appendChild(element);
+    
+    element.addEventListener("animationend", () => {
+      element.remove();
+    });
+  }
+}
+</script>
+</body>
+</html>
